@@ -1,0 +1,475 @@
+package proveedores;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.sql.*;
+import java.util.logging.*;
+import javax.imageio.ImageIO;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+
+public class GestionProveedores extends JFrame {
+    private JTextField txtPRVCodigo, txtPRVNombre, txtPRVIdentificacion, txtPRVDireccion, txtPRVTelefono, txtPRVCelular, txtPRVEmail, txtPRVTipo;
+    private JLabel lblImagen;
+    private JButton btnCargarImagen, btnGuardar, btnNuevo, btnVerProveedores, btnEliminar;
+    private ImageIcon imagenProveedor;
+    private static final Logger logger = Logger.getLogger(GestionProveedores.class.getName());
+    private JTable table;
+
+    public GestionProveedores() {
+        super("Gestión de Proveedores");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(800, 600);
+        setLocationRelativeTo(null);  // Center the window
+        setLayout(new BorderLayout());
+
+        // Logger setup
+        setupLogger();
+
+        // Initialize Components
+        initComponents();
+
+        setVisible(true);
+    }
+
+    private void initComponents() {
+        
+        
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBackground(new Color(255, 253, 208)); // Color crema de fondo
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(new Color(255, 253, 208)); // Color crema de fondo
+        JLabel titleLabel = new JLabel("Raul Proveedores"); 
+        titleLabel.setFont(new Font("Brush Script MT", Font.BOLD | Font.ITALIC, 50)); // Tipo de letra manuscrita bonita
+        titleLabel.setForeground(Color.BLACK); // Color del texto negro
+        titlePanel.add(titleLabel);
+        add(titlePanel, BorderLayout.NORTH);
+        JLabel welcomeLabel = new JLabel("___________ B    I    E    N    V    E    N    I    D    O ___________");
+        welcomeLabel.setFont(new Font("Arial", Font.PLAIN, 15));
+        welcomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        
+ 
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        mainPanel.add(new JLabel("Código:"), gbc);
+        txtPRVCodigo = new JTextField(20);
+        txtPRVCodigo.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                completarDatosProveedor();
+            }
+        });
+        gbc.gridx = 1;
+        mainPanel.add(txtPRVCodigo, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        mainPanel.add(new JLabel("Nombre:"), gbc);
+        txtPRVNombre = new JTextField(20);
+        gbc.gridx = 1;
+        mainPanel.add(txtPRVNombre, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        mainPanel.add(new JLabel("Identificación:"), gbc);
+        txtPRVIdentificacion = new JTextField(20);
+        gbc.gridx = 1;
+        mainPanel.add(txtPRVIdentificacion, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        mainPanel.add(new JLabel("Dirección:"), gbc);
+        txtPRVDireccion = new JTextField(20);
+        gbc.gridx = 1;
+        mainPanel.add(txtPRVDireccion, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        mainPanel.add(new JLabel("Teléfono:"), gbc);
+        txtPRVTelefono = new JTextField(20);
+        gbc.gridx = 1;
+        mainPanel.add(txtPRVTelefono, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        mainPanel.add(new JLabel("Celular:"), gbc);
+        txtPRVCelular = new JTextField(20);
+        gbc.gridx = 1;
+        mainPanel.add(txtPRVCelular, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        mainPanel.add(new JLabel("Email:"), gbc);
+        txtPRVEmail = new JTextField(20);
+        gbc.gridx = 1;
+        mainPanel.add(txtPRVEmail, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        mainPanel.add(new JLabel("Tipo:"), gbc);
+        txtPRVTipo = new JTextField(20);
+        gbc.gridx = 1;
+        mainPanel.add(txtPRVTipo, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 8;
+        mainPanel.add(new JLabel("Imagen:"), gbc);
+        lblImagen = new JLabel();
+        lblImagen.setPreferredSize(new Dimension(100, 100));
+        gbc.gridx = 1;
+        mainPanel.add(lblImagen, gbc);
+
+        btnCargarImagen = new JButton("Cargar Imagen");
+        btnCargarImagen.addActionListener(this::cargarImagen);
+        gbc.gridx = 2;
+        mainPanel.add(btnCargarImagen, gbc);
+
+        JPanel buttonPanel = new JPanel();
+        btnGuardar = new JButton("Guardar");
+        btnGuardar.setBackground(Color.BLUE);
+        btnGuardar.setForeground(Color.BLACK);
+        btnGuardar.addActionListener(this::guardarProveedor);
+        buttonPanel.add(btnGuardar);
+
+        btnNuevo = new JButton("Nuevo");
+        btnNuevo.setBackground(Color.GREEN);
+        btnNuevo.setForeground(Color.BLACK);
+        btnNuevo.addActionListener(e -> clearForm());
+        buttonPanel.add(btnNuevo);
+
+        btnVerProveedores = new JButton("Ver Proveedores");
+        btnVerProveedores.setBackground(Color.YELLOW);
+        btnVerProveedores.setForeground(Color.BLACK);
+        btnVerProveedores.addActionListener(e -> verProveedores());
+        buttonPanel.add(btnVerProveedores);
+
+        btnEliminar = new JButton("Eliminar");
+        btnEliminar.setBackground(Color.RED);
+        btnEliminar.setForeground(Color.BLACK);
+        btnEliminar.addActionListener(e -> eliminarProveedor());
+        buttonPanel.add(btnEliminar);
+
+        add(mainPanel, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    private void completarDatosProveedor() {
+        String codigo = txtPRVCodigo.getText();
+        if (codigo.isEmpty()) return;
+
+        try (Connection conn = ConexionOracle.getConnection()) {
+            String sql = "SELECT * FROM PROVEEDORES WHERE PRVCODIGO = ?";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, codigo);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                txtPRVNombre.setText(rs.getString("PRVNOMBRE").trim());
+                txtPRVIdentificacion.setText(rs.getString("PRVIDENTIFICACION").trim());
+                txtPRVDireccion.setText(rs.getString("PRVDIRECCION").trim());
+                txtPRVTelefono.setText(rs.getString("PRVTELEFONO").trim());
+                txtPRVCelular.setText(rs.getString("PRVCELULAR").trim());
+                txtPRVEmail.setText(rs.getString("PRVEMAIL").trim());
+                txtPRVTipo.setText(rs.getString("PRVTIPO").trim());
+                // Manejo de la imagen
+                Blob blob = rs.getBlob("FOTO");
+                if (blob != null) {
+                    byte[] imgBytes = blob.getBytes(1, (int) blob.length());
+                    ImageIcon icon = new ImageIcon(imgBytes);
+                    lblImagen.setIcon(new ImageIcon(icon.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH)));
+                }
+            }
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, "Error al completar datos del proveedor", ex);
+            JOptionPane.showMessageDialog(this, "Error al completar datos del proveedor: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void cargarImagen(ActionEvent e) {
+        JFileChooser fileChooser = new JFileChooser();
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            try {
+                Image img = ImageIO.read(selectedFile);
+                imagenProveedor = new ImageIcon(img);
+                lblImagen.setIcon(new ImageIcon(img.getScaledInstance(100, 100, Image.SCALE_SMOOTH)));
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error al cargar la imagen: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private byte[] getImagenBytes() {
+        if (imagenProveedor == null) {
+            return null;
+        }
+        Image img = imagenProveedor.getImage();
+        BufferedImage bufferedImage = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D bGr = bufferedImage.createGraphics();
+        bGr.drawImage(img, 0, 0, null);
+        bGr.dispose();
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            ImageIO.write(bufferedImage, "png", baos);
+            return baos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void guardarProveedor(ActionEvent e) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        try {
+            conn = ConexionOracle.getConnection();
+            String sql = "INSERT INTO PROVEEDORES (PRVCODIGO, PRVNOMBRE, PRVIDENTIFICACION, PRVDIRECCION, PRVTELEFONO, PRVCELULAR, PRVEMAIL, PRVTIPO, PRVSTATUS, FOTO) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACT', ?) ON DUPLICATE KEY UPDATE PRVNOMBRE = VALUES(PRVNOMBRE), PRVIDENTIFICACION = VALUES(PRVIDENTIFICACION), PRVDIRECCION = VALUES(PRVDIRECCION), PRVTELEFONO = VALUES(PRVTELEFONO), PRVCELULAR = VALUES(PRVCELULAR), PRVEMAIL = VALUES(PRVEMAIL), PRVTIPO = VALUES(PRVTIPO), FOTO = VALUES(FOTO)";
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, txtPRVCodigo.getText());
+            stmt.setString(2, txtPRVNombre.getText());
+            stmt.setString(3, txtPRVIdentificacion.getText());
+            stmt.setString(4, txtPRVDireccion.getText());
+            stmt.setString(5, txtPRVTelefono.getText());
+            stmt.setString(6, txtPRVCelular.getText());
+            stmt.setString(7, txtPRVEmail.getText());
+            stmt.setString(8, txtPRVTipo.getText());
+            stmt.setBytes(9, getImagenBytes());
+
+            int affectedRows = stmt.executeUpdate();
+            if (affectedRows > 0) {
+                logger.info("Proveedor agregado/actualizado con éxito.");
+                JOptionPane.showMessageDialog(this, "Proveedor agregado/actualizado con éxito.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, "Error al guardar el proveedor", ex);
+            JOptionPane.showMessageDialog(this, "Error al guardar el proveedor: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException ex) {
+                    logger.log(Level.SEVERE, "Error al cerrar PreparedStatement", ex);
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException ex) {
+                    logger.log(Level.SEVERE, "Error al cerrar Connection", ex);
+                }
+            }
+        }
+    }
+
+    private void verProveedores() {
+        JFrame frame = new JFrame("Proveedores");
+        frame.setSize(1200, 600);
+        frame.setLocationRelativeTo(null);  // Center the window
+        frame.setLayout(new BorderLayout());
+
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(new Color(255, 253, 208));
+        JLabel titleLabel = new JLabel("Lista de Proveedores");
+        titleLabel.setFont(new Font("Brush Script MT", Font.BOLD, 50));
+        titleLabel.setForeground(Color.BLACK);
+        titlePanel.add(titleLabel);
+        frame.add(titlePanel, BorderLayout.NORTH);
+
+        DefaultTableModel model = new DefaultTableModel();
+        table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        model.addColumn("PRVCODIGO");
+        model.addColumn("PRVNOMBRE");
+        model.addColumn("PRVIDENTIFICACION");
+        model.addColumn("PRVDIRECCION");
+        model.addColumn("PRVTELEFONO");
+        model.addColumn("PRVCELULAR");
+        model.addColumn("PRVEMAIL");
+        model.addColumn("PRVTIPO");
+        model.addColumn("PRVSTATUS");
+        model.addColumn("FOTO");
+
+        try (Connection conn = ConexionOracle.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM PROVEEDORES")) {
+            while (rs.next()) {
+                Object[] row = new Object[10];
+                row[0] = rs.getString("PRVCODIGO").trim();
+                row[1] = rs.getString("PRVNOMBRE").trim();
+                row[2] = rs.getString("PRVIDENTIFICACION").trim();
+                row[3] = rs.getString("PRVDIRECCION").trim();
+                row[4] = rs.getString("PRVTELEFONO").trim();
+                row[5] = rs.getString("PRVCELULAR").trim();
+                row[6] = rs.getString("PRVEMAIL").trim();
+                row[7] = rs.getString("PRVTIPO").trim();
+                row[8] = rs.getString("PRVSTATUS").trim();
+                // Cargar la imagen
+                Blob blob = rs.getBlob("FOTO");
+                if (blob != null) {
+                    byte[] imgBytes = blob.getBytes(1, (int) blob.length());
+                    ImageIcon icon = new ImageIcon(imgBytes);
+                    row[9] = icon;
+                } else {
+                    row[9] = null;
+                }
+
+                model.addRow(row);
+            }
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, "Error al cargar los proveedores", ex);
+            JOptionPane.showMessageDialog(this, "Error al cargar los proveedores: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+        table.getColumnModel().getColumn(9).setCellRenderer(new ImageRenderer());
+        frame.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton btnEditar = new JButton("Editar");
+        btnEditar.setBackground(Color.GREEN); 
+        panel.add(btnEditar);
+
+        JButton btnEliminar = new JButton("Eliminar");
+        btnEliminar.setBackground(Color.RED); 
+        panel.add(btnEliminar);
+
+        btnEditar.addActionListener(e -> editarProveedor());
+        btnEliminar.addActionListener(e -> eliminarProveedor());
+
+        frame.add(panel, BorderLayout.SOUTH);
+        frame.setVisible(true);
+    }
+
+    private void editarProveedor() {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Por favor, seleccione un proveedor para editar.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String codigo = (String) table.getValueAt(selectedRow, 0);
+        String nombre = (String) table.getValueAt(selectedRow, 1);
+        String identificacion = (String) table.getValueAt(selectedRow, 2);
+        String direccion = (String) table.getValueAt(selectedRow, 3);
+        String telefono = (String) table.getValueAt(selectedRow, 4);
+        String celular = (String) table.getValueAt(selectedRow, 5);
+        String email = (String) table.getValueAt(selectedRow, 6);
+        String tipo = (String) table.getValueAt(selectedRow, 7);
+        // La imagen y el estado no se editan aquí
+
+        txtPRVCodigo.setText(codigo);
+        txtPRVNombre.setText(nombre);
+        txtPRVIdentificacion.setText(identificacion);
+        txtPRVDireccion.setText(direccion);
+        txtPRVTelefono.setText(telefono);
+        txtPRVCelular.setText(celular);
+        txtPRVEmail.setText(email);
+        txtPRVTipo.setText(tipo);
+
+        // Si la fila seleccionada tiene una imagen, establecerla en el JLabel
+        Object imgObj = table.getValueAt(selectedRow, 9);
+        if (imgObj != null) {
+            ImageIcon icon = (ImageIcon) imgObj;
+            lblImagen.setIcon(icon);
+            imagenProveedor = icon;
+        } else {
+            lblImagen.setIcon(null);
+            imagenProveedor = null;
+        }
+    }
+
+    private void eliminarProveedor() {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Por favor, seleccione un proveedor para eliminar.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String codigo = (String) table.getValueAt(selectedRow, 0);
+        int confirm = JOptionPane.showConfirmDialog(this, "¿Está seguro que desea eliminar este proveedor?", "Confirmación de Eliminación", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            try (Connection conn = ConexionOracle.getConnection()) {
+                String sql = "UPDATE PROVEEDORES SET PRVSTATUS = 'INA' WHERE PRVCODIGO = ?";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setString(1, codigo);
+
+                int affectedRows = stmt.executeUpdate();
+                if (affectedRows > 0) {
+                    logger.info("Proveedor eliminado con éxito.");
+                    JOptionPane.showMessageDialog(this, "Proveedor eliminado con éxito.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    ((DefaultTableModel) table.getModel()).removeRow(selectedRow);
+                }
+            } catch (SQLException ex) {
+                logger.log(Level.SEVERE, "Error al eliminar el proveedor", ex);
+                JOptionPane.showMessageDialog(this, "Error al eliminar el proveedor: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void setupLogger() {
+        try {
+            FileHandler fh = new FileHandler("GestionProveedores.log", true);
+            fh.setFormatter(new SimpleFormatter());
+            logger.addHandler(fh);
+            logger.setLevel(Level.ALL);
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Error setting up logger", ex);
+        }
+    }
+
+    public static void main(String[] args) {
+        new GestionProveedores();
+    }
+
+    private void clearForm() {
+        txtPRVCodigo.setText("");
+        txtPRVNombre.setText("");
+        txtPRVIdentificacion.setText("");
+        txtPRVDireccion.setText("");
+        txtPRVTelefono.setText("");
+        txtPRVCelular.setText("");
+        txtPRVEmail.setText("");
+        txtPRVTipo.setText("");
+        lblImagen.setIcon(null);
+        imagenProveedor = null;
+    }
+
+    class ImageRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            if (value instanceof ImageIcon) {
+                JLabel lbl = new JLabel((ImageIcon) value);
+                return lbl;
+            }
+            return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+        }
+    }
+    
+class ConexionOracle {
+    private static final String URL = "jdbc:oracle:thin:@localhost:1521:xe";
+    private static final String USERNAME = "System"; // Reemplaza con tu nombre de usuario
+    private static final String PASSWORD = "123456"; // Reemplaza con tu contraseña
+
+    public static Connection getConnection() {
+        try {
+            DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
+            return DriverManager.getConnection(URL, USERNAME, PASSWORD);
+        } catch (SQLException e) {
+            Logger.getLogger(ConexionOracle.class.getName()).log(Level.SEVERE, "Error al conectar con la base de datos", e);
+            return null;
+        }
+    }
+}
+
+    
+}
