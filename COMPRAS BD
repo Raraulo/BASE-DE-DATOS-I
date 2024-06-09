@@ -1,0 +1,904 @@
+package javaapplication1;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Image;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Properties;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
+import javax.swing.JFormattedTextField;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import org.jdatepicker.impl.JDatePanelImpl;
+import org.jdatepicker.impl.JDatePickerImpl;
+
+public class RaulCompras extends JFrame {
+    private JTextField txtOCNumero, txtPRVCodigo, txtOCSubTotal, txtOCDescuento, txtOCValorIva, txtOCValorIce, txtOCFacturaAsociada, txtPrecioTotal;
+    private JComboBox<String> cmbFormaPago;
+    private JDatePickerImpl datePicker;
+    private JLabel lblImagen;
+    private JButton btnCargarImagen;
+    private ImageIcon imagenCompra;
+    private JButton btnGuardar, btnNuevo, btnVerCompras;
+    private static final Logger logger = Logger.getLogger(RaulCompras.class.getName());
+
+    public RaulCompras() {
+        super("RaulCompras");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(800, 600);
+        setLocationRelativeTo(null);  // Center the window
+        setLayout(new BorderLayout());
+
+        // Logger setup
+        setupLogger();
+
+        // Initialize Components
+        initComponents();
+
+        setVisible(true);
+    }
+
+    private void initComponents() {
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBackground(new Color(255, 253, 208)); // Color crema de fondo
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(new Color(255, 253, 208)); // Color crema de fondo
+        JLabel titleLabel = new JLabel("Raul Compras"); 
+        titleLabel.setFont(new Font("Brush Script MT", Font.BOLD | Font.ITALIC, 50)); // Tipo de letra manuscrita bonita
+        titleLabel.setForeground(Color.BLACK); // Color del texto negro
+        titlePanel.add(titleLabel);
+        add(titlePanel, BorderLayout.NORTH);
+        JLabel welcomeLabel = new JLabel("___________ B    I    E    N    V    E    N    I    D    O ___________");
+        welcomeLabel.setFont(new Font("Arial", Font.PLAIN, 15));
+        welcomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        // Crear un JPanel para contener el título y el mensaje de bienvenida
+        JPanel welcomePanel = new JPanel();
+        welcomePanel.setLayout(new GridLayout(2, 1)); // Dos filas, una para el título y otra para el mensaje de bienvenida
+        welcomePanel.setBackground(new Color(255, 253, 208)); // Color crema de fondo
+
+        // Añadir el título "Raul Compras"
+        welcomePanel.add(titlePanel);
+
+        // Añadir el mensaje de bienvenida
+        welcomePanel.add(welcomeLabel);
+
+        // Añadir el panel al contenedor principal
+        add(welcomePanel, BorderLayout.NORTH);
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("OC Numero:"), gbc);
+        txtOCNumero = new JTextField(20);
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(txtOCNumero, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("PRV Codigo:"), gbc);
+        txtPRVCodigo = new JTextField(20);
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(txtPRVCodigo, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("Fecha:"), gbc);
+        datePicker = createDatePicker();
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(datePicker, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("Subtotal:"), gbc);
+        txtOCSubTotal = new JTextField(20);
+        txtOCSubTotal.getDocument().addDocumentListener(new DocumentListener() {
+            public void changedUpdate(DocumentEvent e) {
+                calculatePriceTotal();
+            }
+            public void removeUpdate(DocumentEvent e) {
+                calculatePriceTotal();
+            }
+            public void insertUpdate(DocumentEvent e) {
+                calculatePriceTotal();
+            }
+        });
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(txtOCSubTotal, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("Descuento (%):"), gbc);
+        txtOCDescuento = new JTextField(20);
+        txtOCDescuento.getDocument().addDocumentListener(new DocumentListener() {
+            public void changedUpdate(DocumentEvent e) {
+                calculatePriceTotal();
+            }
+            public void removeUpdate(DocumentEvent e) {
+                calculatePriceTotal();
+            }
+            public void insertUpdate(DocumentEvent e) {
+                calculatePriceTotal();
+            }
+        });
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(txtOCDescuento, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("Valor IVA:"), gbc);
+        txtOCValorIva = new JTextField(20);
+        txtOCValorIva.setEditable(false);
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(txtOCValorIva, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("Valor ICE:"), gbc);
+        txtOCValorIce = new JTextField(20);
+        txtOCValorIce.getDocument().addDocumentListener(new DocumentListener() {
+            public void changedUpdate(DocumentEvent e) {
+                calculatePriceTotal();
+            }
+            public void removeUpdate(DocumentEvent e) {
+                calculatePriceTotal();
+            }
+            public void insertUpdate(DocumentEvent e) {
+                calculatePriceTotal();
+            }
+        });
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(txtOCValorIce, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("Forma Pago:"), gbc);
+        cmbFormaPago = new JComboBox<>(new String[]{"Efectivo", "T. Crédito", "T. Débito", "Cheques"});
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(cmbFormaPago, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 8;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("Factura Asociada:"), gbc);
+        txtOCFacturaAsociada = new JTextField(20);
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(txtOCFacturaAsociada, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 9;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("Precio Total:"), gbc);
+        txtPrecioTotal = new JTextField(20);
+        txtPrecioTotal.setEditable(false);
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(txtPrecioTotal, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 10;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("Imagen:"), gbc);
+        lblImagen = new JLabel();
+        lblImagen.setPreferredSize(new Dimension(100, 100));
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(lblImagen, gbc);
+
+        btnCargarImagen = new JButton("Cargar Imagen");
+        btnCargarImagen.addActionListener(this::cargarImagen);
+        gbc.gridx = 2;
+        gbc.anchor = GridBagConstraints.WEST;
+        mainPanel.add(btnCargarImagen, gbc);
+
+        JPanel buttonPanel = new JPanel();
+        btnGuardar = new JButton("Guardar");
+        btnGuardar.setBackground(Color.BLUE);
+        btnGuardar.setForeground(Color.BLACK);
+        btnGuardar.addActionListener(this::guardarCompra);
+        buttonPanel.add(btnGuardar);
+
+        btnNuevo = new JButton("Nuevo");
+        btnNuevo.setBackground(Color.GREEN); // Cambiado a verde
+        btnNuevo.setForeground(Color.BLACK); // Letras en negro
+        btnNuevo.addActionListener(e -> clearForm());
+        buttonPanel.add(btnNuevo);
+
+        btnVerCompras = new JButton("Ver Compras");
+        btnVerCompras.setBackground(Color.YELLOW); // Cambiado a amarillo
+        btnVerCompras.setForeground(Color.BLACK); // Letras en negro
+        btnVerCompras.addActionListener(e -> verCompras());
+        buttonPanel.add(btnVerCompras);
+        add(mainPanel, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    private void calculatePriceTotal() {
+    try {
+        double subtotal = txtOCSubTotal.getText().isEmpty() ? 0 : parseStringToDouble(txtOCSubTotal.getText());
+        double descuento = txtOCDescuento.getText().isEmpty() ? 0 : parseStringToDouble(txtOCDescuento.getText());
+        
+        if (descuento < 1 || descuento > 100) {
+            JOptionPane.showMessageDialog(this, "El descuento debe estar entre 1% y 100%.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        double descuentoValor = subtotal * (descuento / 100);
+        double subtotalConDescuento = subtotal - descuentoValor;
+        double iva = subtotalConDescuento * 0.15;
+        double ice = txtOCValorIce.getText().isEmpty() ? 0 : parseStringToDouble(txtOCValorIce.getText());
+        double total = subtotalConDescuento + iva + ice;
+        
+        txtOCValorIva.setText(String.format("%.2f", iva));
+        txtPrecioTotal.setText(String.format("%.2f", total));
+    } catch (NumberFormatException e) {
+        txtPrecioTotal.setText("");
+        JOptionPane.showMessageDialog(this, "Error al calcular el precio total: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
+
+    private void cargarImagen(ActionEvent e) {
+        JFileChooser fileChooser = new JFileChooser();
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            try {
+                Image img = ImageIO.read(selectedFile);
+                imagenCompra = new ImageIcon(img);
+                lblImagen.setIcon(new ImageIcon(img.getScaledInstance(100, 100, Image.SCALE_SMOOTH)));
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error al cargar la imagen: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private byte[] getImagenBytes() {
+        if (imagenCompra == null) {
+            return null;
+        }
+        Image img = imagenCompra.getImage();
+        BufferedImage bufferedImage = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D bGr = bufferedImage.createGraphics();
+        bGr.drawImage(img, 0, 0, null);
+        bGr.dispose();
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            ImageIO.write(bufferedImage, "png", baos);
+            return baos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+ private void guardarCompra(ActionEvent e) {
+    if (!validarDatos()) {
+        JOptionPane.showMessageDialog(this, "Por favor, corrija los errores en el formulario.", "Error de validación", JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+
+    Connection conn = null;
+    PreparedStatement stmt = null;
+    try {
+        conn = ConexionOracle.getConnection();
+        String sql = "INSERT INTO COMPRAS (OCNUMERO, PRVCODIGO, OCFECHA, OCSUBTOTAL, OCDESCUENTO, OCVALOR_IVA, OCVALOR_ICE, OCFORMAPAGO, OCFACTURA_ASOCIADA, OCSTATUS, PRECIOTOTAL, FOTO) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACT', ?, ?)";
+        stmt = conn.prepareStatement(sql);
+        stmt.setString(1, txtOCNumero.getText());
+        stmt.setString(2, txtPRVCodigo.getText());
+        stmt.setDate(3, new java.sql.Date(((java.util.Date) datePicker.getModel().getValue()).getTime()));
+        stmt.setDouble(4, parseStringToDouble(txtOCSubTotal.getText()));
+        stmt.setDouble(5, txtOCDescuento.getText().isEmpty() ? 0 : parseStringToDouble(txtOCDescuento.getText()));
+        stmt.setDouble(6, parseStringToDouble(txtOCValorIva.getText()));
+        stmt.setDouble(7, txtOCValorIce.getText().isEmpty() ? 0 : parseStringToDouble(txtOCValorIce.getText()));
+        stmt.setString(8, cmbFormaPago.getSelectedItem().toString());
+        stmt.setString(9, txtOCFacturaAsociada.getText());
+        stmt.setDouble(10, parseStringToDouble(txtPrecioTotal.getText()));
+        stmt.setBytes(11, getImagenBytes() == null ? null : getImagenBytes());
+
+        int affectedRows = stmt.executeUpdate();
+        if (affectedRows > 0) {
+            logger.info("Compra agregada con éxito.");
+            JOptionPane.showMessageDialog(this, "Compra agregada con éxito.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        }
+    } catch (Exception ex) {
+        logger.log(Level.SEVERE, "Error al guardar la compra", ex);
+        JOptionPane.showMessageDialog(this, "Error al guardar la compra: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    } finally {
+        if (stmt != null) {
+            try {
+                stmt.close();
+            } catch (SQLException ex) {
+                logger.log(Level.SEVERE, "Error al cerrar PreparedStatement", ex);
+            }
+        }
+        if (conn != null) {
+            try {
+                conn.close();
+            } catch (SQLException ex) {
+                logger.log(Level.SEVERE, "Error al cerrar Connection", ex);
+            }
+        }
+    }
+}
+
+
+
+    private void verCompras() {
+        JFrame frame = new JFrame("Compras");
+        frame.setSize(1200, 600);
+        frame.setLocationRelativeTo(null);  // Center the window
+        frame.setLayout(new BorderLayout());
+
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(new Color(255, 253, 208));
+        JLabel titleLabel = new JLabel("Lista de Compras");
+        titleLabel.setFont(new Font("Brush Script MT", Font.BOLD, 50));
+        titleLabel.setForeground(Color.BLACK);
+        titlePanel.add(titleLabel);
+        frame.add(titlePanel, BorderLayout.NORTH);
+
+        DefaultTableModel model = new DefaultTableModel();
+        JTable table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        model.addColumn("OCNUMERO");
+        model.addColumn("PRVCODIGO");
+        model.addColumn("OCFECHA");
+        model.addColumn("OCSUBTOTAL");
+        model.addColumn("OCVALOR_IVA");
+        model.addColumn("OCVALOR_ICE");
+        model.addColumn("OCFORMAPAGO");
+        model.addColumn("OCFACTURA_ASOCIADA");
+        model.addColumn("PRECIOTOTAL");
+        model.addColumn("FOTO");
+
+        Connection conn = null;
+        Statement stmt = null;
+        try {
+            conn = ConexionOracle.getConnection();
+            String sql = "SELECT OCNUMERO, PRVCODIGO, OCFECHA, OCSUBTOTAL, OCVALOR_IVA, OCVALOR_ICE, OCFORMAPAGO, OCFACTURA_ASOCIADA, PRECIOTOTAL, FOTO FROM COMPRAS";
+            stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            while (rs.next()) {
+                Object[] row = new Object[10];
+                row[0] = rs.getString("OCNUMERO");
+                row[1] = rs.getString("PRVCODIGO");
+                row[2] = rs.getDate("OCFECHA");
+                row[3] = rs.getDouble("OCSUBTOTAL");
+                row[4] = rs.getDouble("OCVALOR_IVA");
+                row[5] = rs.getDouble("OCVALOR_ICE");
+                row[6] = rs.getString("OCFORMAPAGO");
+                row[7] = rs.getString("OCFACTURA_ASOCIADA");
+                row[8] = rs.getDouble("PRECIOTOTAL");
+
+                // Cargar la imagen
+                Blob blob = rs.getBlob("FOTO");
+                if (blob != null) {
+                    byte[] imgBytes = blob.getBytes(1, (int) blob.length());
+                    ImageIcon icon = new ImageIcon(imgBytes);
+                    row[9] = icon;
+                } else {
+                    row[9] = null;
+                }
+
+                model.addRow(row);
+            }
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, "Error al cargar las compras", ex);
+            JOptionPane.showMessageDialog(this, "Error al cargar las compras: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException ex) {
+                    logger.log(Level.SEVERE, "Error al cerrar Statement", ex);
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException ex) {
+                    logger.log(Level.SEVERE, "Error al cerrar Connection", ex);
+                }
+            }
+        }
+
+        table.getColumnModel().getColumn(9).setCellRenderer((TableCellRenderer) new ImageRenderer());
+        frame.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton btnEditar = new JButton("Editar");
+        btnEditar.setBackground(Color.GREEN); // Cambiado a verde
+        panel.add(btnEditar);
+
+        JButton btnEliminar = new JButton("Eliminar");
+        btnEliminar.setBackground(Color.RED); // Cambiado a rojo
+        panel.add(btnEliminar);
+        btnEditar.addActionListener(e -> editarCompra(table));
+        btnEliminar.addActionListener(e -> eliminarCompra(table));
+
+        panel.add(btnEditar);
+        panel.add(btnEliminar);
+
+        frame.add(panel, BorderLayout.SOUTH);
+        frame.setVisible(true);
+    }
+
+    private void editarCompra(JTable table) {
+    int selectedRow = table.getSelectedRow();
+    if (selectedRow == -1) {
+        JOptionPane.showMessageDialog(this, "Por favor, seleccione una compra para editar.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+
+    String ocNumero = (String) table.getValueAt(selectedRow, 0);
+    String prvCodigo = (String) table.getValueAt(selectedRow, 1);
+    Date ocFecha = (Date) table.getValueAt(selectedRow, 2);
+    double ocSubTotal = (double) table.getValueAt(selectedRow, 3);
+    double ocValorIva = (double) table.getValueAt(selectedRow, 4);
+    double ocValorIce = (double) table.getValueAt(selectedRow, 5);
+    String ocFormaPago = (String) table.getValueAt(selectedRow, 6);
+    String ocFacturaAsociada = (String) table.getValueAt(selectedRow, 7);
+    double precioTotal = (double) table.getValueAt(selectedRow, 8);
+    ImageIcon imagen = (ImageIcon) table.getValueAt(selectedRow, 9);
+
+    JFrame editFrame = new JFrame("Editar Compra");
+    editFrame.setSize(800, 600);
+    editFrame.setLocationRelativeTo(null);
+    editFrame.setLayout(new BorderLayout());
+
+    JPanel titlePanel = new JPanel();
+    titlePanel.setBackground(new Color(255, 253, 208));
+    JLabel titleLabel = new JLabel("Editar Compra");
+    titleLabel.setFont(new Font("Brush Script MT", Font.BOLD, 50));
+    titleLabel.setForeground(Color.BLACK);
+    titlePanel.add(titleLabel);
+    editFrame.add(titlePanel, BorderLayout.NORTH);
+
+    JPanel editPanel = new JPanel(new GridBagLayout());
+    GridBagConstraints gbc = new GridBagConstraints();
+    gbc.insets = new Insets(5, 5, 5, 5);
+    gbc.fill = GridBagConstraints.HORIZONTAL;
+
+    // Campos de texto y sus etiquetas
+    JTextField txtEditOCNumero = new JTextField(ocNumero, 20);
+    JTextField txtEditPRVCodigo = new JTextField(prvCodigo, 20);
+    org.jdatepicker.impl.UtilDateModel editModel = new org.jdatepicker.impl.UtilDateModel(ocFecha);
+    JDatePickerImpl editDatePicker = new JDatePickerImpl(new JDatePanelImpl(editModel, new Properties()), new DateLabelFormatter());
+    JTextField txtEditOCSubTotal = new JTextField(String.valueOf(ocSubTotal), 20);
+    JTextField txtEditOCDescuento = new JTextField(20);
+    JTextField txtEditOCValorIva = new JTextField(String.valueOf(ocValorIva), 20);
+    txtEditOCValorIva.setEditable(false);
+    JTextField txtEditOCValorIce = new JTextField(String.valueOf(ocValorIce), 20);
+    JComboBox<String> cmbEditFormaPago = new JComboBox<>(new String[]{"Efectivo", "Tarjeta de crédito", "Tarjeta de débito", "Cheques"});
+    cmbEditFormaPago.setSelectedItem(ocFormaPago);
+    JTextField txtEditOCFacturaAsociada = new JTextField(ocFacturaAsociada, 20);
+    JTextField txtEditPrecioTotal = new JTextField(String.valueOf(precioTotal), 20);
+    txtEditPrecioTotal.setEditable(false);
+    JLabel lblEditImagen = new JLabel();
+    if (imagen != null) {
+        lblEditImagen.setIcon(new ImageIcon(imagen.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH)));
+    }
+
+    // Añadir campos al panel
+    gbc.gridx = 0;
+    gbc.gridy = 0;
+    editPanel.add(new JLabel("OC Numero:"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(txtEditOCNumero, gbc);
+    gbc.gridy++;
+    gbc.gridx = 0;
+    editPanel.add(new JLabel("PRV Codigo:"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(txtEditPRVCodigo, gbc);
+    gbc.gridy++;
+    gbc.gridx = 0;
+    editPanel.add(new JLabel("Fecha:"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(editDatePicker, gbc);
+    gbc.gridy++;
+    gbc.gridx = 0;
+    editPanel.add(new JLabel("Subtotal:"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(txtEditOCSubTotal, gbc);
+    gbc.gridy++;
+    gbc.gridx = 0;
+    editPanel.add(new JLabel("Descuento (%):"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(txtEditOCDescuento, gbc);
+    gbc.gridy++;
+    gbc.gridx = 0;
+    editPanel.add(new JLabel("Valor IVA:"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(txtEditOCValorIva, gbc);
+    gbc.gridy++;
+    gbc.gridx = 0;
+    editPanel.add(new JLabel("Valor ICE:"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(txtEditOCValorIce, gbc);
+    gbc.gridy++;
+    gbc.gridx = 0;
+    editPanel.add(new JLabel("Forma Pago:"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(cmbEditFormaPago, gbc);
+    gbc.gridy++;
+    gbc.gridx = 0;
+    editPanel.add(new JLabel("Factura Asociada:"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(txtEditOCFacturaAsociada, gbc);
+    gbc.gridy++;
+    gbc.gridx = 0;
+    editPanel.add(new JLabel("Precio Total:"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(txtEditPrecioTotal, gbc);
+    gbc.gridy++;
+    gbc.gridx = 0;
+    editPanel.add(new JLabel("Imagen:"), gbc);
+    gbc.gridx = 1;
+    editPanel.add(lblEditImagen, gbc);
+    JButton btnCargarEditImagen = new JButton("Cargar Imagen");
+    btnCargarEditImagen.addActionListener(e -> cargarImagen(lblEditImagen));
+    gbc.gridx = 2;
+    editPanel.add(btnCargarEditImagen, gbc);
+
+    // Añadir DocumentListeners a los campos relevantes
+    txtEditOCSubTotal.getDocument().addDocumentListener(new DocumentListener() {
+        public void changedUpdate(DocumentEvent e) {
+            calculateEditPriceTotal(txtEditOCSubTotal, txtEditOCDescuento, txtEditOCValorIva, txtEditOCValorIce, txtEditPrecioTotal);
+        }
+        public void removeUpdate(DocumentEvent e) {
+            calculateEditPriceTotal(txtEditOCSubTotal, txtEditOCDescuento, txtEditOCValorIva, txtEditOCValorIce, txtEditPrecioTotal);
+        }
+        public void insertUpdate(DocumentEvent e) {
+            calculateEditPriceTotal(txtEditOCSubTotal, txtEditOCDescuento, txtEditOCValorIva, txtEditOCValorIce, txtEditPrecioTotal);
+        }
+
+        private void calculateEditPriceTotal(JTextField txtEditOCSubTotal, JTextField txtEditOCDescuento, JTextField txtEditOCValorIva, JTextField txtEditOCValorIce, JTextField txtEditPrecioTotal) {
+            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        }
+    });
+
+    txtEditOCDescuento.getDocument().addDocumentListener(new DocumentListener() {
+        public void changedUpdate(DocumentEvent e) {
+            calculateEditPriceTotal(txtEditOCSubTotal, txtEditOCDescuento, txtEditOCValorIva, txtEditOCValorIce, txtEditPrecioTotal);
+        }
+        public void removeUpdate(DocumentEvent e) {
+            calculateEditPriceTotal(txtEditOCSubTotal, txtEditOCDescuento, txtEditOCValorIva, txtEditOCValorIce, txtEditPrecioTotal);
+        }
+        public void insertUpdate(DocumentEvent e) {
+            calculateEditPriceTotal(txtEditOCSubTotal, txtEditOCDescuento, txtEditOCValorIva, txtEditOCValorIce, txtEditPrecioTotal);
+        }
+
+        private void calculateEditPriceTotal(JTextField txtEditOCSubTotal, JTextField txtEditOCDescuento, JTextField txtEditOCValorIva, JTextField txtEditOCValorIce, JTextField txtEditPrecioTotal) {
+            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        }
+    });
+
+    txtEditOCValorIce.getDocument().addDocumentListener(new DocumentListener() {
+        public void changedUpdate(DocumentEvent e) {
+            calculateEditPriceTotal(txtEditOCSubTotal, txtEditOCDescuento, txtEditOCValorIva, txtEditOCValorIce, txtEditPrecioTotal);
+        }
+        public void removeUpdate(DocumentEvent e) {
+            calculateEditPriceTotal(txtEditOCSubTotal, txtEditOCDescuento, txtEditOCValorIva, txtEditOCValorIce, txtEditPrecioTotal);
+        }
+        public void insertUpdate(DocumentEvent e) {
+            calculateEditPriceTotal(txtEditOCSubTotal, txtEditOCDescuento, txtEditOCValorIva, txtEditOCValorIce, txtEditPrecioTotal);
+        }
+
+        private void calculateEditPriceTotal(JTextField txtEditOCSubTotal, JTextField txtEditOCDescuento, JTextField txtEditOCValorIva, JTextField txtEditOCValorIce, JTextField txtEditPrecioTotal) {
+            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        }
+    });
+
+    JButton btnGuardarCambios = new JButton("Guardar Cambios");
+    btnGuardarCambios.addActionListener(e -> {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        try {
+            conn = ConexionOracle.getConnection();
+            String sql = "UPDATE COMPRAS SET OCNUMERO = ?, PRVCODIGO = ?, OCFECHA = ?, OCSUBTOTAL = ?, OCDESCUENTO = ?, OCVALOR_IVA = ?, OCVALOR_ICE = ?, OCFORMAPAGO = ?, OCFACTURA_ASOCIADA = ?, PRECIOTOTAL = ?, FOTO = ? WHERE OCNUMERO = ?";
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, txtEditOCNumero.getText());
+            stmt.setString(2, txtEditPRVCodigo.getText());
+            stmt.setDate(3, new java.sql.Date(((java.util.Date) editDatePicker.getModel().getValue()).getTime()));
+            stmt.setDouble(4, parseStringToDouble(txtEditOCSubTotal.getText()));
+            stmt.setDouble(5, txtEditOCDescuento.getText().isEmpty() ? 0 : parseStringToDouble(txtEditOCDescuento.getText()));
+            stmt.setDouble(6, parseStringToDouble(txtEditOCValorIva.getText()));
+            stmt.setDouble(7, txtEditOCValorIce.getText().isEmpty() ? 0 : parseStringToDouble(txtEditOCValorIce.getText()));
+            stmt.setString(8, cmbEditFormaPago.getSelectedItem().toString());
+            stmt.setString(9, txtEditOCFacturaAsociada.getText());
+            stmt.setDouble(10, parseStringToDouble(txtEditPrecioTotal.getText()));
+            stmt.setBytes(11, lblEditImagen.getIcon() == null ? null : getImagenBytesFromLabel(lblEditImagen));
+            stmt.setString(12, ocNumero);
+
+            int affectedRows = stmt.executeUpdate();
+            if (affectedRows > 0) {
+                logger.info("Compra actualizada con éxito.");
+                JOptionPane.showMessageDialog(this, "Compra actualizada con éxito.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                editFrame.dispose();
+            }
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, "Error al actualizar la compra", ex);
+            JOptionPane.showMessageDialog(this, "Error al actualizar la compra: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException ex) {
+                    logger.log(Level.SEVERE, "Error al cerrar PreparedStatement", ex);
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException ex) {
+                    logger.log(Level.SEVERE, "Error al cerrar Connection", ex);
+                }
+            }
+        }
+    });
+
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    buttonPanel.add(btnGuardarCambios);
+    editFrame.add(buttonPanel, BorderLayout.SOUTH);
+    editFrame.add(editPanel, BorderLayout.CENTER);
+    editFrame.setVisible(true);
+}
+
+    private void eliminarCompra(JTable table) {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Por favor, seleccione una compra para eliminar.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String ocNumero = (String) table.getValueAt(selectedRow, 0);
+        int confirm = JOptionPane.showConfirmDialog(this, "¿Está seguro que desea eliminar esta compra?", "Confirmación de Eliminación", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            Connection conn = null;
+            PreparedStatement stmt = null;
+            try {
+                conn = ConexionOracle.getConnection();
+                String sql = "DELETE FROM COMPRAS WHERE OCNUMERO = ?";
+                stmt = conn.prepareStatement(sql);
+                stmt.setString(1, ocNumero);
+
+                int affectedRows = stmt.executeUpdate();
+                if (affectedRows > 0) {
+                    logger.info("Compra eliminada con éxito.");
+                    JOptionPane.showMessageDialog(this, "Compra eliminada con éxito.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    ((DefaultTableModel) table.getModel()).removeRow(selectedRow);
+                }
+            } catch (SQLException ex) {
+                logger.log(Level.SEVERE, "Error al eliminar la compra", ex);
+                JOptionPane.showMessageDialog(this, "Error al eliminar la compra: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            } finally {
+                if (stmt != null) {
+                    try {
+                        stmt.close();
+                    } catch (SQLException ex) {
+                        logger.log(Level.SEVERE, "Error al cerrar PreparedStatement", ex);
+                    }
+                }
+                if (conn != null) {
+                    try {
+                        conn.close();
+                    } catch (SQLException ex) {
+                        logger.log(Level.SEVERE, "Error al cerrar Connection", ex);
+                    }
+                }
+            }
+        }
+    }
+    private void calculateEditPriceTotal(JTextField txtOCSubTotal, JTextField txtOCDescuento, JTextField txtOCValorIva, JTextField txtOCValorIce, JTextField txtPrecioTotal) {
+    try {
+        double subtotal = txtOCSubTotal.getText().isEmpty() ? 0 : parseStringToDouble(txtOCSubTotal.getText());
+        double descuento = txtOCDescuento.getText().isEmpty() ? 0 : parseStringToDouble(txtOCDescuento.getText());
+
+        if (descuento < 1 || descuento > 100) {
+            JOptionPane.showMessageDialog(this, "El descuento debe estar entre 1% y 100%.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        double descuentoValor = subtotal * (descuento / 100);
+        double subtotalConDescuento = subtotal - descuentoValor;
+        double iva = subtotalConDescuento * 0.15;
+        double ice = txtOCValorIce.getText().isEmpty() ? 0 : parseStringToDouble(txtOCValorIce.getText());
+        double total = subtotalConDescuento + iva + ice;
+
+        txtOCValorIva.setText(String.format("%.2f", iva));
+        txtPrecioTotal.setText(String.format("%.2f", total));
+    } catch (NumberFormatException e) {
+        txtPrecioTotal.setText("");
+        JOptionPane.showMessageDialog(this, "Error al calcular el precio total: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
+
+
+    private boolean validarDatos() {
+        try {
+            parseStringToDouble(txtOCSubTotal.getText());
+            if (!txtOCValorIce.getText().isEmpty()) {
+                parseStringToDouble(txtOCValorIce.getText());
+            }
+            return true;
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Valores numéricos incorrectos.", "Error de validación", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
+    private void clearForm() {
+        txtOCNumero.setText("");
+        txtPRVCodigo.setText("");
+        datePicker.getModel().setValue(null);
+        txtOCSubTotal.setText("");
+        txtOCValorIce.setText("");
+        cmbFormaPago.setSelectedIndex(0);
+        txtOCFacturaAsociada.setText("");
+        txtPrecioTotal.setText("");
+        lblImagen.setIcon(null);
+        imagenCompra = null;
+    }
+
+    private JDatePickerImpl createDatePicker() {
+        org.jdatepicker.impl.UtilDateModel model = new org.jdatepicker.impl.UtilDateModel();
+        Properties p = new Properties();
+        p.put("text.today", "Today");
+        p.put("text.month", "Month");
+        p.put("text.year", "Year");
+        JDatePanelImpl datePanel = new JDatePanelImpl(model, p);
+        return new JDatePickerImpl(datePanel, new DateLabelFormatter());
+    }
+
+    private void setupLogger() {
+        try {
+            FileHandler fh = new FileHandler("RaulCompras.log", true);
+            fh.setFormatter(new SimpleFormatter());
+            logger.addHandler(fh);
+            logger.setLevel(Level.ALL);
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Error setting up logger", ex);
+        }
+    }
+
+    public static void main(String[] args) {
+        RaulCompras raulCompras = new RaulCompras();
+    }
+
+    private byte[] getImagenBytesFromLabel(JLabel lblImagen) {
+        if (lblImagen.getIcon() == null) {
+            return null;
+        }
+        Image img = ((ImageIcon) lblImagen.getIcon()).getImage();
+        BufferedImage bufferedImage = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D bGr = bufferedImage.createGraphics();
+        bGr.drawImage(img, 0, 0, null);
+        bGr.dispose();
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            ImageIO.write(bufferedImage, "png", baos);
+            return baos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private double parseStringToDouble(String value) throws NumberFormatException {
+    if (value == null || value.trim().isEmpty()) {
+        throw new NumberFormatException("La cadena está vacía o es nula");
+    }
+    // Reemplazar coma por punto para números decimales
+    value = value.replace(",", ".");
+    return Double.parseDouble(value);
+}
+
+    private void cargarImagen(JLabel lblEditImagen) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+
+class DateLabelFormatter extends JFormattedTextField.AbstractFormatter {
+    private SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd");
+
+    @Override
+    public Object stringToValue(String text) throws ParseException {
+        return dateFormatter.parse(text);
+    }
+
+    @Override
+    public String valueToString(Object value) throws ParseException {
+        if (value != null) {
+            return dateFormatter.format(((java.util.Calendar) value).getTime());
+        }
+        return "";
+    }
+}
+
+class ConexionOracle {
+    private static final String URL = "jdbc:oracle:thin:@localhost:1521:xe";
+    private static final String USERNAME = "System"; // Reemplaza con tu nombre de usuario
+    private static final String PASSWORD = "123456"; // Reemplaza con tu contraseña
+
+    public static Connection getConnection() {
+        try {
+            DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
+            return DriverManager.getConnection(URL, USERNAME, PASSWORD);
+        } catch (SQLException e) {
+            Logger.getLogger(ConexionOracle.class.getName()).log(Level.SEVERE, "Error al conectar con la base de datos", e);
+            return null;
+        }
+    }
+}
+
+class ImageRenderer extends DefaultTableCellRenderer {
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        if (value instanceof ImageIcon) {
+            JLabel lbl = new JLabel((ImageIcon) value);
+            return lbl;
+        }
+        return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+    }
+}}
